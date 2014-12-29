@@ -132,7 +132,7 @@ class CLHLock implements Lock {
     }; 
   }
   public boolean tryLock() {
-	  if (tail.get() == null || tail.get().locked == false) {
+	  if (tail.get().locked == false || tail.get() == null) {
       lock();
       return true;
     } else {
@@ -171,7 +171,7 @@ class MCSLock implements Lock {
     };
   }
   public boolean tryLock() {
-	  if (tail.get().next == null) {
+	  if (tail.get() == null) {
       lock();
       return true;
     } else {

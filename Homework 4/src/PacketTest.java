@@ -53,7 +53,7 @@ class ParallelPacket {
     //
     PacketQueue[] queueBank = new PacketQueue[numSources];
     for (int i = 0; i < numSources; i++) {
-        queueBank[i] = new PacketQueue(queueDepth);
+        queueBank[i] = new PacketQueue(queueDepth, lockType);
     }
 
     StopWatch timer = new StopWatch();
@@ -72,10 +72,12 @@ class ParallelPacket {
 
     ParallelPacketWorker[] workerArray = new ParallelPacketWorker[numSources];
     Thread[] workerThreadArray = new Thread[numSources];
+    
     for (int i = 0; i < numSources; i++) {
-        workerArray[i] = new ParallelPacketWorker(dispatcherDone, queueBank[i]);
+        workerArray[i] = new ParallelPacketWorker(dispatcherDone, queueBank, strategy, i);
         workerThreadArray[i] = new Thread(workerArray[i]);
     }
+    ParallelPacketWorker.queues = queueBank;
 
 
     // call .start() on your Workers

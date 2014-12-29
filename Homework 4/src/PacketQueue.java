@@ -1,3 +1,4 @@
+import java.util.concurrent.atomic.AtomicBoolean;
 /**
  * A wait-free queue implementation.
  */
@@ -10,11 +11,15 @@ class EmptyException extends Exception {
 public class PacketQueue {
 	volatile int head = 0, tail = 0;
 	Packet[] items;
+	Lock lock;
+	AtomicBoolean done;
 
-	public PacketQueue(int capacity) {
+	public PacketQueue(int capacity, int lockType) {
 		items = new Packet[capacity];
 		head = 0;
 		tail = 0;
+		this.lock = new LockAllocator().getLock(lockType);
+		done = new AtomicBoolean(false);
 	}
 
 	public void enq(Packet x) throws FullException {

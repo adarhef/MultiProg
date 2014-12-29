@@ -52,7 +52,7 @@ class SerialQueueFirewall {
     // they should throw FullException and EmptyException upon those conditions
     PacketQueue[] queueBank = new PacketQueue[numSources];
     for (int i = 0; i < numSources; i++) {
-    	queueBank[i] = new PacketQueue(queueDepth);
+    	queueBank[i] = new PacketQueue(queueDepth, null);
     }
 
     // Create a SerialQueuePackerWorker workerData 
