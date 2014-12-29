@@ -51,19 +51,45 @@ class ParallelPacket {
     //
     // Allocate and initialize your Lamport queues
     //
+    PacketQueue[] queueBank = new PacketQueue[numSources];
+    for (int i = 0; i < numSources; i++) {
+        queueBank[i] = new PacketQueue(queueDepth);
+    }
+
     StopWatch timer = new StopWatch();
     PacketSource pkt = new PacketSource(mean, numSources, experimentNumber);
     // 
     // Allocate and initialize locks and any signals used to marshal threads (eg. done signals)
     // 
+    PaddedPrimitiveNonVolatile<Boolean> timeOver = new PaddedPrimitiveNonVolatile<Boolean>(false);
+    PaddedPrimitiveNonVolatile<Boolean> dispatcherDone = new PaddedPrimitiveNonVolatile<Boolean>(false);
+    PaddedPrimitive<Boolean> memFence = new PaddedPrimitive<Boolean>(false);
+
     // Allocate and initialize Dispatcher and Worker threads
     //
+    Dispatcher dispatcherData = new Dispatcher(timeOver, pkt, uniformFlag, numSources, queueBank);
+    Thread dispatcherThread = new Thread(dispatcherData);
+
+    ParallelPacketWorker[] workerArray = new ParallelPacketWorker[numSources];
+    Thread[] workerThreadArray = new Thread[numSources];
+    for (int i = 0; i < numSources; i++) {
+        workerArray[i] = new ParallelPacketWorker(dispatcherDone, queueBank[i]);
+        workerThreadArray[i] = new Thread(workerArray[i]);
+    }
+
+
     // call .start() on your Workers
     //
+    for (int i = 0; i < numSources; i++) {
+        workerThreadArray[i].start();
+    }
     timer.startTimer();
     // 
     // call .start() on your Dispatcher
     // 
+
+    dispatcherThread.start();
+
     try {
       Thread.sleep(numMilliseconds);
     } catch (InterruptedException ignore) {;}
@@ -71,14 +97,29 @@ class ParallelPacket {
     // assert signals to stop Dispatcher - remember, Dispatcher needs to deliver an 
     // equal number of packets from each source
     //
+    timeOver.value=true;
+    memFence.value=true;
+
     // call .join() on Dispatcher
     //
+    try {
+        dispatcherThread.join();
+    } catch(InterruptedException ignore) {;}
+
     // assert signals to stop Workers - they are responsible for leaving the queues
     // empty - use whatever protocol you like, but one easy one is to have each
     // worker verify that it's corresponding queue is empty after it observes the
     // done signal set to true
     //
+    dispatcherDone.value=true;
+    memFence.value=false;
+
     // call .join() for each Worker
+    for (int i = 0; i < numSources; i++) {
+        try{
+            workerThreadArray[i].join();
+        } catch(InterruptedException ignore) {;}
+    }
     timer.stopTimer();
     final long totalCount = dispatchData.totalPackets;
     System.out.println("count: " + totalCount);
