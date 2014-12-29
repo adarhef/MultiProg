@@ -1,6 +1,9 @@
 import java.util.concurrent.atomic.*;
 import java.util.Random;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.Scanner;
+import java.io.File;
+import java.io.FileNotFoundException;
 
 public interface Lock {
   public void lock();
@@ -47,8 +50,23 @@ class Backoff { // helper class for the BackoffLock
 
 class BackoffLock implements Lock {
   private AtomicBoolean state = new AtomicBoolean(false);
-  private static final int MIN_DELAY = 6193; // You should tune these parameters...
-  private static final int MAX_DELAY = 100000000;
+  private static int MIN_DELAY; //= 6193; // You should tune these parameters...
+  private static int MAX_DELAY; //= 100000000;
+  
+  public BackoffLock() {
+	  Scanner sc = null;
+	try {
+		sc = new Scanner(new File("~/delays.txt"));
+	} catch (FileNotFoundException e) {
+		// TODO Auto-generated catch block
+		e.printStackTrace();
+	}
+	  MIN_DELAY = sc.nextInt();
+	  MAX_DELAY = sc.nextInt();
+	  sc.close();
+	  
+  }
+  
   public void lock() {
     while(state.get()) {;} // try to get the lock once before allocating a new Backoff(...)
     if(!state.getAndSet(true)) {
