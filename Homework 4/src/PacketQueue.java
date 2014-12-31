@@ -12,14 +12,13 @@ public class PacketQueue {
 	volatile int head = 0, tail = 0;
 	Packet[] items;
 	Lock lock;
-	AtomicBoolean done;
+	volatile boolean done = false;
 
 	public PacketQueue(int capacity, int lockType) {
 		items = new Packet[capacity];
 		head = 0;
 		tail = 0;
 		this.lock = new LockAllocator().getLock(lockType);
-		done = new AtomicBoolean(false);
 	}
 
 	public void enq(Packet x) throws FullException {

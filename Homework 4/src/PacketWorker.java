@@ -48,7 +48,7 @@ class SerialQueuePacketWorker implements PacketWorker {
 	PacketQueue[] queueBank;
 	long[] workerPacketNumArray;
 	Packet[] pendingPacketArray;
-	
+
 	private Packet getPacket(int sourceNum) {
 		totalPackets++;
 		workerPacketNumArray[sourceNum]++;
@@ -59,16 +59,15 @@ class SerialQueuePacketWorker implements PacketWorker {
 	}
 
 	public SerialQueuePacketWorker(PaddedPrimitiveNonVolatile<Boolean> done,
-			PacketSource pkt,
-			boolean uniformBool,
-			int numSources,
+			PacketSource pkt, boolean uniformBool, int numSources,
 			PacketQueue[] queueBank) {
 		this.done = done;
 		this.pkt = pkt;
 		this.uniformBool = uniformBool;
 		this.numSources = numSources;
 		this.queueBank = queueBank;
-		workerPacketNumArray = new long[numSources]; //elements initialized to 0 by default
+		workerPacketNumArray = new long[numSources]; // elements initialized to
+														// 0 by default
 		pendingPacketArray = new Packet[numSources];
 		for (int i = 0; i < numSources; i++) {
 			pendingPacketArray[i] = getPacket(i);
@@ -82,11 +81,16 @@ class SerialQueuePacketWorker implements PacketWorker {
 				try {
 					queueBank[i].enq(pendingPacketArray[i]);
 					pendingPacketArray[i] = getPacket(i);
-				} catch (FullException e) {;}
+				} catch (FullException e) {
+					;
+				}
 				try {
 					tmp = queueBank[i].deq();
-					fingerprint += residue.getFingerprint(tmp.iterations, tmp.seed);
-				} catch (EmptyException e) {;}
+					fingerprint += residue.getFingerprint(tmp.iterations,
+							tmp.seed);
+				} catch (EmptyException e) {
+					;
+				}
 			}
 		}
 		for (int i = 0; i < numSources; i++) {
@@ -103,92 +107,134 @@ class ParallelPacketWorker implements PacketWorker {
 	PaddedPrimitiveNonVolatile<Boolean> done;
 	static PacketQueue[] queues;
 	short strategy;
-	int i;
-	
+	int myIndex;
 
 	public ParallelPacketWorker(PaddedPrimitiveNonVolatile<Boolean> done,
 			PacketQueue[] queues, short strategy, int arrayIndex) {
 		this.done = done;
 		this.strategy = strategy;
-		this.i = arrayIndex;
-
+		this.myIndex = arrayIndex;
 	}
 
 	public void run() {
 		Packet tmp;
-		int selectedIndex; // For the random selections
+		
 		Random rn = new Random(System.currentTimeMillis());
-
+		int selectedIndex = rn.nextInt() % queues.length; // For the random selections
+		
 		switch (strategy) {
-			case 1: // LOCKFREE
-				while (!done.value) {
-					try {
-						tmp = queues[this.i].deq();
-						fingerprint += residue.getFingerprint(tmp.iterations, tmp.seed);
-					} catch (EmptyException e) {;}
+		case 1: // LOCKFREE
+			while (!done.value) {
+				try {
+					tmp = queues[myIndex].deq();
+					fingerprint += residue.getFingerprint(tmp.iterations,
+							tmp.seed);
+				} catch (EmptyException e) {
+					;
 				}
-				while (true) {
-					try {
-						tmp = queues[this.i].deq();
-						fingerprint += residue.getFingerprint(tmp.iterations, tmp.seed);
-					} catch (EmptyException e) {
-						return;
-					}
+			}
+			while (true) {
+				try {
+					tmp = queues[myIndex].deq();
+					fingerprint += residue.getFingerprint(tmp.iterations,
+							tmp.seed);
+				} catch (EmptyException e) {
+					return;
 				}
-				
-			case 2: // HOMEQUEUE
-				while (!done.value) {
-					try {
-						queues[this.i].lock.lock();
-						tmp = queues[this.i].deq();
-						queues[this.i].lock.unlock();
-						fingerprint += residue.getFingerprint(tmp.iterations, tmp.seed);
-					} catch (EmptyException e) {;}
-				}
-				while (true) {
-					try {
-						queues[this.i].lock.lock();
-						tmp = queues[this.i].deq();
-						queues[this.i].lock.unlock();
-						fingerprint += residue.getFingerprint(tmp.iterations, tmp.seed);
-					} catch (EmptyException e) {
-						return;
-					}
-				}
-				
-			case 3: // RANDOMQUEUE
+			}
 
-				while (!done.value) {
-					try {
+		case 2: // HOMEQUEUE
+			while (!done.value) {
+				try {
+					queues[myIndex].lock.lock();
+					tmp = queues[myIndex].deq();
+					queues[myIndex].lock.unlock();
+					fingerprint += residue.getFingerprint(tmp.iterations,
+							tmp.seed);
+				} catch (EmptyException e) {
+					queues[myIndex].lock.unlock();
+				}
+			}
+			while (true) {
+				try {
+					queues[myIndex].lock.lock();
+					tmp = queues[myIndex].deq();
+					queues[myIndex].lock.unlock();
+					fingerprint += residue.getFingerprint(tmp.iterations,
+							tmp.seed);
+				} catch (EmptyException e) {
+					queues[myIndex].lock.unlock();
+					return;
+				}
+			}
+
+		case 3: // RANDOMQUEUE
+
+			while (!done.value) {
+				try {
+					queues[selectedIndex].lock.lock();
+					tmp = queues[selectedIndex].deq();
+					queues[selectedIndex].lock.unlock();
+					fingerprint += residue.getFingerprint(tmp.iterations,
+							tmp.seed);
+					selectedIndex = rn.nextInt() % queues.length;
+				} catch (EmptyException e) {
+					queues[myIndex].lock.unlock();
+				}
+			}
+			while (numberOfDoneQueues.get() < queues.length) {
+				if (queues[selectedIndex].done) {
+					selectedIndex = rn.nextInt() % queues.length;
+					continue;
+				}
+				try {
+					queues[selectedIndex].lock.lock();
+					tmp = queues[selectedIndex].deq();
+					queues[selectedIndex].lock.unlock();
+					fingerprint += residue.getFingerprint(tmp.iterations,
+							tmp.seed);
+					selectedIndex = rn.nextInt() % queues.length;
+				} catch (EmptyException e) {
+					queues[selectedIndex].done = true;
+					queues[selectedIndex].lock.unlock();
+					numberOfDoneQueues.getAndIncrement();
+				}
+			}
+
+		case 4: // LASTQUEUE
+			
+			while (!done.value) {
+					while (!queues[selectedIndex].lock.tryLock())
 						selectedIndex = rn.nextInt() % queues.length;
-
-						queues[selectedIndex].lock.lock();
-						tmp = queues[selectedIndex].deq();
-						queues[selectedIndex].lock.unlock();
-						fingerprint += residue.getFingerprint(tmp.iterations, tmp.seed);
-					} catch (EmptyException e) {;}
+					while (true)
+						try {
+							tmp = queues[selectedIndex].deq();
+							fingerprint += residue.getFingerprint(tmp.iterations,
+									tmp.seed);
+						} catch (EmptyException e) {
+							queues[selectedIndex].lock.unlock();
+							break;
+						}
+			}
+			while (numberOfDoneQueues.get() < queues.length) {
+				if (queues[selectedIndex].done || !queues[selectedIndex].lock.tryLock()) {
+					selectedIndex = rn.nextInt() % queues.length;
+					continue;
 				}
 				while (true) {
 					try {
-						selectedIndex = rn.nextInt() % queues.length;
-
-						queues[selectedIndex].lock.lock();
 						tmp = queues[selectedIndex].deq();
-						queues[selectedIndex].lock.unlock();
-						fingerprint += residue.getFingerprint(tmp.iterations, tmp.seed);
+						fingerprint += residue.getFingerprint(tmp.iterations,
+								tmp.seed);
 					} catch (EmptyException e) {
-						if (queues[selectedIndex].done.compareAndSet(false, true)) {
-							numberOfDoneQueues.incrementAndGet();
-						} 
-						if (numberOfDoneQueues.get() == queues.length) {
-							return;
-						} 
+						queues[selectedIndex].done = true;
+						queues[selectedIndex].lock.unlock();
+						numberOfDoneQueues.getAndDecrement();
+						selectedIndex = rn.nextInt() % queues.length;
+						break;
 					}
 				}
-				break;
-
-			case 4: // LASTQUEUE
-				
+			}
 
 		}
 	}
