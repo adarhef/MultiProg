@@ -237,7 +237,7 @@ class LockAllocator {
 		return lock;
 	}
 
-	public void printLockType(int lockType) {
+	static public void printLockType(int lockType) {
 		if (lockType == 0) {
 			System.out.println("TASLock");
 		} else if (lockType == 1) {
@@ -252,7 +252,7 @@ class LockAllocator {
 		}
 	}
 
-	public void printLockTypes() {
+	static public void printLockTypes() {
 		for (int i = 0; i < 6; i++) {
 			System.out.println(i + ":");
 			printLockType(i);

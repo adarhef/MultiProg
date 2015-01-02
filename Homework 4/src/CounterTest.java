@@ -39,7 +39,7 @@ class ParallelCounter {
     
     LockAllocator la = new LockAllocator();
     lock = la.getLock(lockType);
-    la.printLockType(lockType);
+    LockAllocator.printLockType(lockType);
     
     lock.lock(); // I'll grab the lock and then later unlock as I release the workers
 

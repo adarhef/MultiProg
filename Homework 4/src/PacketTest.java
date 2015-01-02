@@ -1,3 +1,5 @@
+import java.io.PrintStream;
+
 
 class SerialPacket {
   public static void main(String[] args) {
@@ -124,8 +126,24 @@ class ParallelPacket {
     }
     timer.stopTimer();
     final long totalCount = dispatcherData.totalPackets;
+    printStrategy(strategy);
     System.out.println("count: " + totalCount);
     System.out.println("time: " + timer.getElapsedTime());
     System.out.println(totalCount/timer.getElapsedTime() + " pkts / ms");
   }
+  
+  static public void printStrategy(short strategy) {
+		if (strategy == 1) {
+			System.out.println("LockFree");
+		} else if (strategy == 2) {
+			System.out.println("HomeQueue");
+		} else if (strategy == 3) {
+			System.out.println("RandomQueue");
+		} else if (strategy == 4) {
+			System.out.println("LastQueue");
+		} else {
+			System.out.println("This is not a valid strategy:");
+			System.out.println(strategy);
+		}
+	}
 }
