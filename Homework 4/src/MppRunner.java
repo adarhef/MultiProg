@@ -50,7 +50,7 @@ public class MppRunner {
 		
 		final String queueDepth = "8";
 		arguments[5] = queueDepth;
-		
+		/*
 		System.out.println("Packet Test 1: Idle Lock Overhead (n = 1, uniform packets)");
 		System.out.println();
 	
@@ -180,5 +180,6 @@ public class MppRunner {
 				System.out.println();
 			}
 		}
+		*/
 	}
 }
