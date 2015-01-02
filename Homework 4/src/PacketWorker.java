@@ -119,8 +119,8 @@ class ParallelPacketWorker implements PacketWorker {
 	public void run() {
 		Packet tmp;
 		
-		Random rn = new Random(System.currentTimeMillis());
-		int selectedIndex = rn.nextInt() % queues.length; // For the random selections
+		Random rn = new Random();
+		int selectedIndex = rn.nextInt(queues.length); // For the random selections
 		
 		switch (strategy) {
 		case 1: // LOCKFREE
@@ -177,15 +177,15 @@ class ParallelPacketWorker implements PacketWorker {
 					queues[selectedIndex].lock.unlock();
 					fingerprint += residue.getFingerprint(tmp.iterations,
 							tmp.seed);
-					selectedIndex = rn.nextInt() % queues.length;
+					selectedIndex = rn.nextInt(queues.length);
 				} catch (EmptyException e) {
 					queues[myIndex].lock.unlock();
-					selectedIndex = rn.nextInt() % queues.length;
+					selectedIndex = rn.nextInt(queues.length);
 				}
 			}
 			while (numberOfDoneQueues.get() < queues.length) {
 				if (queues[selectedIndex].done) {
-					selectedIndex = rn.nextInt() % queues.length;
+					selectedIndex = rn.nextInt(queues.length);
 					continue;
 				}
 				try {
@@ -194,12 +194,12 @@ class ParallelPacketWorker implements PacketWorker {
 					queues[selectedIndex].lock.unlock();
 					fingerprint += residue.getFingerprint(tmp.iterations,
 							tmp.seed);
-					selectedIndex = rn.nextInt() % queues.length;
+					selectedIndex = rn.nextInt(queues.length);
 				} catch (EmptyException e) {
 					queues[selectedIndex].done = true;
 					queues[selectedIndex].lock.unlock();
 					numberOfDoneQueues.getAndIncrement();
-					selectedIndex = rn.nextInt() % queues.length;
+					selectedIndex = rn.nextInt(queues.length);
 				}
 			}
 
@@ -207,7 +207,7 @@ class ParallelPacketWorker implements PacketWorker {
 			
 			while (!done.value) {
 					while (!queues[selectedIndex].lock.tryLock())
-						selectedIndex = rn.nextInt() % queues.length;
+						selectedIndex = rn.nextInt(queues.length);
 					while (true)
 						try {
 							tmp = queues[selectedIndex].deq();
@@ -215,13 +215,13 @@ class ParallelPacketWorker implements PacketWorker {
 									tmp.seed);
 						} catch (EmptyException e) {
 							queues[selectedIndex].lock.unlock();
-							selectedIndex = rn.nextInt() % queues.length;
+							selectedIndex = rn.nextInt(queues.length);
 							break;
 						}
 			}
 			while (numberOfDoneQueues.get() < queues.length) {
 				if (queues[selectedIndex].done || !queues[selectedIndex].lock.tryLock()) {
-					selectedIndex = rn.nextInt() % queues.length;
+					selectedIndex = rn.nextInt(queues.length);
 					continue;
 				}
 				while (true) {
@@ -233,7 +233,7 @@ class ParallelPacketWorker implements PacketWorker {
 						queues[selectedIndex].done = true;
 						queues[selectedIndex].lock.unlock();
 						numberOfDoneQueues.getAndIncrement();
-						selectedIndex = rn.nextInt() % queues.length;
+						selectedIndex = rn.nextInt(queues.length);
 						break;
 					}
 				}
