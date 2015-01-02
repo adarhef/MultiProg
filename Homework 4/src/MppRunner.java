@@ -59,7 +59,7 @@ public class MppRunner {
 		String[] W = {"25", "200", "800"};
 		String[] S = {"1", "2"};
 		
-		Integer trialNumber = 8;
+		Integer trialNumber = 9;
 		/*
 		for (int i = 0; i < lockTypes.length; i++) {
 			arguments[6] = lockTypes[i];
