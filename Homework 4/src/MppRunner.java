@@ -58,7 +58,7 @@ public class MppRunner {
 		arguments[3] = "false";
 		String[] W = {"25", "200", "800"};
 		String[] S = {"1", "2"};
-		int numOfTrials = 5;
+		int numOfTrials = 3;
 		
 		for (int i = 0; i < lockTypes.length; i++) {
 			arguments[6] = lockTypes[i];
@@ -142,6 +142,7 @@ public class MppRunner {
 		
 		n2[1] = "8"; n2[2] = "64";
 		arguments[3] = "true";
+		numOfTrials = 5;
 		
 		System.out.println("SerialPacket:");
 		System.out.println();

@@ -180,6 +180,7 @@ class ParallelPacketWorker implements PacketWorker {
 					selectedIndex = rn.nextInt() % queues.length;
 				} catch (EmptyException e) {
 					queues[myIndex].lock.unlock();
+					selectedIndex = rn.nextInt() % queues.length;
 				}
 			}
 			while (numberOfDoneQueues.get() < queues.length) {
@@ -198,6 +199,7 @@ class ParallelPacketWorker implements PacketWorker {
 					queues[selectedIndex].done = true;
 					queues[selectedIndex].lock.unlock();
 					numberOfDoneQueues.getAndIncrement();
+					selectedIndex = rn.nextInt() % queues.length;
 				}
 			}
 
@@ -213,6 +215,7 @@ class ParallelPacketWorker implements PacketWorker {
 									tmp.seed);
 						} catch (EmptyException e) {
 							queues[selectedIndex].lock.unlock();
+							selectedIndex = rn.nextInt() % queues.length;
 							break;
 						}
 			}
@@ -229,7 +232,7 @@ class ParallelPacketWorker implements PacketWorker {
 					} catch (EmptyException e) {
 						queues[selectedIndex].done = true;
 						queues[selectedIndex].lock.unlock();
-						numberOfDoneQueues.getAndDecrement();
+						numberOfDoneQueues.getAndIncrement();
 						selectedIndex = rn.nextInt() % queues.length;
 						break;
 					}
