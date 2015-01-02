@@ -59,8 +59,8 @@ public class MppRunner {
 		String[] W = {"25", "200", "800"};
 		String[] S = {"1", "2"};
 		
-		Integer trialNumber = 4;
-		
+		Integer trialNumber = 5;
+		/*
 		for (int i = 0; i < lockTypes.length; i++) {
 			arguments[6] = lockTypes[i];
 			LockAllocator.printLockType(Integer.parseInt(arguments[6]));
@@ -82,11 +82,11 @@ public class MppRunner {
 
 		System.out.println("Packet Test 2: Speedup with Uniform Load");
 		System.out.println();
-		
+		*/
 		String[] n2 = {"1", "4", "10"};
 		String[] W2 = {"1000", "6000"};
 		String[] S2 = {"1", "3", "4"};
-		
+		/*
 		System.out.println("SerialPacket:");
 		System.out.println();
 		
@@ -130,7 +130,7 @@ public class MppRunner {
 				System.out.println();
 			}
 		}
-		
+		*/
 		System.out.println("Packet Test 3: Speedup with Exponential Load");
 		System.out.println();
 		
