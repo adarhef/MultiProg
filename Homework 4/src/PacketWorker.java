@@ -179,7 +179,7 @@ class ParallelPacketWorker implements PacketWorker {
 							tmp.seed);
 					selectedIndex = rn.nextInt(queues.length);
 				} catch (EmptyException e) {
-					queues[myIndex].lock.unlock();
+					queues[selectedIndex].lock.unlock();
 					selectedIndex = rn.nextInt(queues.length);
 				}
 			}
@@ -202,6 +202,7 @@ class ParallelPacketWorker implements PacketWorker {
 					selectedIndex = rn.nextInt(queues.length);
 				}
 			}
+			return;
 
 		case 4: // LASTQUEUE
 			
@@ -240,5 +241,6 @@ class ParallelPacketWorker implements PacketWorker {
 			}
 
 		}
+		return;
 	}
 }
