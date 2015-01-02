@@ -9,7 +9,7 @@ public class MppRunner {
 		String[] arguments = new String[8];
 		arguments[0] = experiment1Runtime;
 		final String[] lockTypes = {"0", "1", "4", "5"};
-		
+		/*
 		System.out.println("Counter Test 1: Idle Lock Overhead");
 		System.out.println();
 		
@@ -47,10 +47,10 @@ public class MppRunner {
 			ParallelCounter.main(arguments);
 		}
 		System.out.println();
-		
+		*/
 		final String queueDepth = "8";
 		arguments[5] = queueDepth;
-		/*
+		
 		System.out.println("Packet Test 1: Idle Lock Overhead (n = 1, uniform packets)");
 		System.out.println();
 	
@@ -79,7 +79,7 @@ public class MppRunner {
 				System.out.println();
 			}
 		}
-		
+
 		System.out.println("Packet Test 2: Speedup with Uniform Load");
 		System.out.println();
 		
@@ -180,6 +180,5 @@ public class MppRunner {
 				System.out.println();
 			}
 		}
-		*/
 	}
 }
