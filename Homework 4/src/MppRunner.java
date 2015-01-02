@@ -58,7 +58,8 @@ public class MppRunner {
 		arguments[3] = "false";
 		String[] W = {"25", "200", "800"};
 		String[] S = {"1", "2"};
-		int numOfTrials = 3;
+		
+		Integer trialNumber = 0;
 		
 		for (int i = 0; i < lockTypes.length; i++) {
 			arguments[6] = lockTypes[i];
@@ -68,7 +69,6 @@ public class MppRunner {
 			for (int k = 0; k < W.length; k++) {
 				arguments[2] = W[k];
 				System.out.println("W = " + W[k]);
-				for (Integer trialNumber = 0; trialNumber < numOfTrials; trialNumber++) {
 					arguments[4] = trialNumber.toString();
 					System.out.println("Trial number " + trialNumber);
 					for (int l = 0; l < S.length; l++) {
@@ -76,7 +76,6 @@ public class MppRunner {
 						ParallelPacket.printStrategy(Short.parseShort(arguments[7]));
 						ParallelPacket.main(arguments);
 					}
-				}
 				System.out.println();
 			}
 		}
@@ -99,11 +98,9 @@ public class MppRunner {
 			for (int j = 0; j < n2.length; j++) {
 				arguments[1] = n2[j];
 				System.out.println("n = " + arguments[1]);
-				for (Integer trialNumber = 0; trialNumber < numOfTrials; trialNumber++) {
 					arguments[4] = trialNumber.toString();
 					System.out.println("Trial number " + arguments[4]);
 					SerialPacket.main(arguments);
-				}
 				System.out.println();
 			}
 		}
@@ -125,12 +122,9 @@ public class MppRunner {
 					for (int l = 0; l <= 2; l++) {
 						arguments[6] = lockTypes[l];
 						LockAllocator.printLockType(Integer.parseInt(arguments[6]));
-						for (Integer trialNumber = 0; trialNumber < numOfTrials; trialNumber++) {
 							arguments[4] = trialNumber.toString();
 							System.out.println("Trial number " + arguments[4]);
 							ParallelPacket.main(arguments);
-						}
-						
 					}
 				}
 				System.out.println();
@@ -142,7 +136,6 @@ public class MppRunner {
 		
 		n2[1] = "8"; n2[2] = "64";
 		arguments[3] = "true";
-		numOfTrials = 5;
 		
 		System.out.println("SerialPacket:");
 		System.out.println();
@@ -155,11 +148,9 @@ public class MppRunner {
 			for (int j = 0; j < n2.length; j++) {
 				arguments[1] = n2[j];
 				System.out.println("n = " + arguments[1]);
-				for (Integer trialNumber = 0; trialNumber < numOfTrials; trialNumber++) {
 					arguments[4] = trialNumber.toString();
 					System.out.println("Trial number " + arguments[4]);
 					SerialPacket.main(arguments);
-				}
 				System.out.println();
 			}
 		}
@@ -181,11 +172,9 @@ public class MppRunner {
 					for (int l = 0; l <= 2; l++) {
 						arguments[6] = lockTypes[l];
 						LockAllocator.printLockType(Integer.parseInt(arguments[6]));
-						for (Integer trialNumber = 0; trialNumber < numOfTrials; trialNumber++) {
 							arguments[4] = trialNumber.toString();
 							System.out.println("Trial number " + arguments[4]);
 							ParallelPacket.main(arguments);
-						}
 					}
 				}
 				System.out.println();
