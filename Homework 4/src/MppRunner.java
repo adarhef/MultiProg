@@ -128,7 +128,7 @@ public class MppRunner {
 						for (Integer trialNumber = 0; trialNumber < numOfTrials; trialNumber++) {
 							arguments[4] = trialNumber.toString();
 							System.out.println("Trial number " + arguments[4]);
-							SerialPacket.main(arguments);
+							ParallelPacket.main(arguments);
 						}
 						
 					}
@@ -183,9 +183,8 @@ public class MppRunner {
 						for (Integer trialNumber = 0; trialNumber < numOfTrials; trialNumber++) {
 							arguments[4] = trialNumber.toString();
 							System.out.println("Trial number " + arguments[4]);
-							SerialPacket.main(arguments);
+							ParallelPacket.main(arguments);
 						}
-						
 					}
 				}
 				System.out.println();
