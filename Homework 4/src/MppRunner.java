@@ -5,11 +5,13 @@ public class MppRunner {
 
 	public static void main(String[] args) {
 		
+		Integer trialNumber = 11;
+		
 		final String experiment1Runtime = "2000";
 		String[] arguments = new String[8];
 		arguments[0] = experiment1Runtime;
 		final String[] lockTypes = {"0", "1", "4", "5"};
-		/*
+		
 		System.out.println("Counter Test 1: Idle Lock Overhead");
 		System.out.println();
 		
@@ -47,7 +49,7 @@ public class MppRunner {
 			ParallelCounter.main(arguments);
 		}
 		System.out.println();
-		*/
+		
 		final String queueDepth = "8";
 		arguments[5] = queueDepth;
 		
@@ -59,8 +61,6 @@ public class MppRunner {
 		String[] W = {"25", "200", "800"};
 		String[] S = {"1", "2"};
 		
-		Integer trialNumber = 10;
-		/*
 		for (int i = 0; i < lockTypes.length; i++) {
 			arguments[6] = lockTypes[i];
 			LockAllocator.printLockType(Integer.parseInt(arguments[6]));
@@ -82,11 +82,11 @@ public class MppRunner {
 
 		System.out.println("Packet Test 2: Speedup with Uniform Load");
 		System.out.println();
-		*/
+		
 		String[] n2 = {"1", "4", "10"};
 		String[] W2 = {"1000", "6000"};
 		String[] S2 = {"1", "3", "4"};
-		/*
+		
 		System.out.println("SerialPacket:");
 		System.out.println();
 		
@@ -130,7 +130,7 @@ public class MppRunner {
 				System.out.println();
 			}
 		}
-		*/
+		
 		System.out.println("Packet Test 3: Speedup with Exponential Load");
 		System.out.println();
 		
@@ -169,7 +169,7 @@ public class MppRunner {
 				for (int k = 0; k < S2.length; k++) {
 					arguments[7] = S2[k];
 					ParallelPacket.printStrategy(Short.parseShort(arguments[7]));
-					for (int l = 0; l <= 2; l++) {
+					for (int l = 0; l < 2; l++) {
 						arguments[6] = lockTypes[l];
 						LockAllocator.printLockType(Integer.parseInt(arguments[6]));
 							arguments[4] = trialNumber.toString();
