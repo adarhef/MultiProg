@@ -27,6 +27,8 @@ public class MppRunner {
 		System.out.println("Counter Test 2: Lock Scaling");
 		System.out.println();
 		String[] n = {"1", "8", "64"};
+		
+		
 		for (int i = 0; i < lockTypes.length; i++) {
 			arguments[2] = lockTypes[i];
 			for (int j = 0; j < n.length; j++) {
@@ -66,9 +68,9 @@ public class MppRunner {
 				for (Integer trialNumber = 0; trialNumber < 3; trialNumber++) {
 					arguments[4] = trialNumber.toString();
 					System.out.println("Trial number " + trialNumber);
-					for (Short strategy = 0; strategy <= 1; strategy++) {
+					for (Short strategy = 1; strategy <= 2; strategy++) {
 						arguments[7] = strategy.toString();
-						
+						ParallelPacket.main(arguments);
 					}
 				}
 				System.out.println();
