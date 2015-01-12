@@ -11,12 +11,18 @@ class LockingParallelHashTable<T> implements HashTable<T> {
     private int logSize;
     private int mask;
     private final int maxBucketSize;
+    private SimpleReadWriteLock[] locks;
 
-    public LockingParallelHashTable(int logSize, int maxBucketSize) {
+
+    public LockingParallelHashTable(int logSize, int maxBucketSize, int numThreads) {
         this.logSize = logSize;
         this.maxBucketSize = maxBucketSize;
         this.mask = (1 << logSize) - 1;
+        this.numThreads = numThreads;
         this.table = new LockingParallelBucketList[1 << logSize];
+
+        double numInExponent = Math.floor(Math.log(numThreads) / Math.log(2));
+        this.locks = new SimpleReadWriteLock[(int) Math.pow(2, numInExponent)];
     }
 
     public resizeIfNecessary(int key) {
@@ -25,27 +31,34 @@ class LockingParallelHashTable<T> implements HashTable<T> {
         }
     }
     public resize() {
-        LockingParallelBucketList<T,Integer>[] newTable = new LockingParallelBucketList[2*table.length];    
-        for( int i = 0; i < table.length; i++ ) {
-            if( table[i] == null )
-                continue;    
-            table[i].lockWrite();
-            LockingParallelBucketList<T,Integer>.Iterator<T,Integer> iterator = table[i].getHead();
-            while( iterator != null ) {
-                if( newTable[iterator.key & ((2*mask)+1)] == null )
-                    newTable[iterator.key & ((2*mask)+1)] = new SerialList<T,Integer>(iterator.key, iterator.getItem());
-                else
-                    newTable[iterator.key & ((2*mask)+1)].addNoCheck(iterator.key, iterator.getItem());
-                iterator = iterator.getNext();
+        int oldTableLength = table.length;
+        
+
+        try {
+            for(SimpleReadWriteLock lock : locks) {
+                lock.writeLock().lock();
             }
-        }
-        table = newTable;
-        logSize++;
-        mask = (1 << logSize) - 1;
-        for( int i = 0; i < table.length; i++ ) {
-            table[i].unlockWrite();
+
+            // Check that no one finished resizing at this point
+            if (table.length != oldTableLength) {
+                return;
+            }                
+            LockingParallelBucketList<T,Integer>[] newTable = new LockingParallelBucketList[2*table.length];    
+            LockingParallelBucketList<T,Integer>.Iterator<T,Integer> iterator = table[i].getHead();
+            // Have to rewrite this... I'm stupid. :(
+
+            table = newTable;
+            logSize++;
+            mask = (1 << logSize) - 1;
+        
+        } finally {
+            for(SimpleReadWriteLock lock : locks) {
+                lock.writeLock().unlock();
+            }                
+
         }
     }
+    
 
 }
 

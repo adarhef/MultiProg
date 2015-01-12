@@ -15,12 +15,10 @@ public interface BucketList<T,K> {
 class LockingParallelBucketList<T,K> implements BucketList<T,K> {
     size = 0;
     LockingParallelBucketList<T,K>.Iterator<T,K> head;
-    ReadWriteLock lock;
 
     public LockingParallelBucketList() {
         this.head = null;
         this.size = 0;
-        this.lock = new SimpleReadWriteLock();
     }
 
     public Iterator<T,K> getHead() {
@@ -43,12 +41,7 @@ class LockingParallelBucketList<T,K> implements BucketList<T,K> {
     public boolean contains(K key) {
         LockingParallelBucketList<T,K>.Iterator<T,K> iterator;
         
-        lockRead();
-        try {
-            iterator = getItem(key);
-        } finally {
-            unlockRead();
-        }
+        iterator = getItem(key);
         
         if (iterator == null) {
             return false;
@@ -63,65 +56,41 @@ class LockingParallelBucketList<T,K> implements BucketList<T,K> {
           return false;
         }
 
-        lockWrite();
-        try {
-            if (contains(key) == false) {
-                return false;      
-            }
-            if (head.key.equals(key)) {
-                head = head.getNext();
+        if (contains(key) == false) {
+            return false;      
+        }
+        if (head.key.equals(key)) {
+            head = head.getNext();
+            size--;
+            return true;
+        }
+        while (iterator.hasNext()) {
+            if (iterator.getNext().key.equals(key)) {
+                iterator.setNext(iterator.getNext().getNext());
                 size--;
                 return true;
+            } else { 
+                iterator = iterator.getNext();
             }
-            while (iterator.hasNext()) {
-                if (iterator.getNext().key.equals(key)) {
-                    iterator.setNext(iterator.getNext().getNext());
-                    size--;
-                    return true;
-                } else { 
-                    iterator = iterator.getNext();
-                }
-            }
-            return false;
-        } finally {
-            unlockWrite();
         }
+        return false;
+
     }
     public void add(K key, T item) {
         LockingParallelBucketList<T,K>.Iterator<T,K> iterator = head;
 
-        lockWrite();
-        try {
-            iterator = getItem(key);
-            if (iterator != null) { // Item's already there
-                return;
-            } else {
-                LockingParallelBucketList<T,K>.Iterator<T,K> firstItem = new Iterator<T,K>(key, item, head);
-                head = firstItem;
-                size++;
-            }   
-        } finally {
-            unlockWrite();
-        }        
+        iterator = getItem(key);
+        if (iterator != null) { // Item's already there
+            return;
+        } else {
+            LockingParallelBucketList<T,K>.Iterator<T,K> firstItem = new Iterator<T,K>(key, item, head);
+            head = firstItem;
+            size++;
+        }   
     }
   
     public int getSize() {
         return size;
-    }
-
-    
-
-    public void lockRead() {
-        lock.readLock().lock();
-    }
-    public void lockWrite() {
-        lock.writeLock().lock();   
-    }
-    public void unlockRead() {
-        lock.readLock().unlock();
-    }
-    public void unlockWrite() {
-        lock.writeLock().unlock();   
     }
 
     public class Iterator<T,K> {
