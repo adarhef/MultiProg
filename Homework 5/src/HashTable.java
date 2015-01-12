@@ -6,6 +6,49 @@ public interface HashTable<T> {
   public boolean contains(int key);
 }
 
+class LockingParallelHashTable<T> implements HashTable<T> {
+    private LockingParallelBucketList<T,Integer>[] table;
+    private int logSize;
+    private int mask;
+    private final int maxBucketSize;
+
+    public LockingParallelHashTable(int logSize, int maxBucketSize) {
+        this.logSize = logSize;
+        this.maxBucketSize = maxBucketSize;
+        this.mask = (1 << logSize) - 1;
+        this.table = new LockingParallelBucketList[1 << logSize];
+    }
+
+    public resizeIfNecessary(int key) {
+        while (table[key & mask] != null && table[key & mask].getSize() >= maxBucketSize) {
+            resize();
+        }
+    }
+    public resize() {
+        LockingParallelBucketList<T,Integer>[] newTable = new LockingParallelBucketList[2*table.length];    
+        for( int i = 0; i < table.length; i++ ) {
+            if( table[i] == null )
+                continue;    
+            table[i].lockWrite();
+            LockingParallelBucketList<T,Integer>.Iterator<T,Integer> iterator = table[i].getHead();
+            while( iterator != null ) {
+                if( newTable[iterator.key & ((2*mask)+1)] == null )
+                    newTable[iterator.key & ((2*mask)+1)] = new SerialList<T,Integer>(iterator.key, iterator.getItem());
+                else
+                    newTable[iterator.key & ((2*mask)+1)].addNoCheck(iterator.key, iterator.getItem());
+                iterator = iterator.getNext();
+            }
+        }
+        table = newTable;
+        logSize++;
+        mask = (1 << logSize) - 1;
+        for( int i = 0; i < table.length; i++ ) {
+            table[i].unlockWrite();
+        }
+    }
+
+}
+
 class SerialHashTable<T> implements HashTable<T> {
   private SerialList<T,Integer>[] table;
   private int logSize;

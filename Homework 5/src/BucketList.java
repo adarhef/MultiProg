@@ -11,6 +11,7 @@ public interface BucketList<T,K> {
   }
 }
 
+// ====================== Parallel Blocking Bucket List =========================
 class LockingParallelBucketList<T,K> implements BucketList<T,K> {
     size = 0;
     LockingParallelBucketList<T,K>.Iterator<T,K> head;
@@ -91,10 +92,11 @@ class LockingParallelBucketList<T,K> implements BucketList<T,K> {
 
         lockWrite();
         try {
-            if (contains(key)) {
+            iterator = getItem(key);
+            if (iterator != null) { // Item's already there
                 return;
             } else {
-                SerialList<T,K>.Iterator<T,K> firstItem = new Iterator<T,K>(key, item, head);
+                LockingParallelBucketList<T,K>.Iterator<T,K> firstItem = new Iterator<T,K>(key, item, head);
                 head = firstItem;
                 size++;
             }   
@@ -152,6 +154,7 @@ class LockingParallelBucketList<T,K> implements BucketList<T,K> {
 
 
 }
+// ====================== Serial Bucket List =========================
 class SerialList<T,K> implements BucketList<T,K> {
   int size = 0;
   SerialList<T,K>.Iterator<T,K> head;
