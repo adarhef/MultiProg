@@ -1,4 +1,4 @@
-import java.util.concurrent.atomic.*;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 public interface HashTable<T> {
   public void add(int key, T x);
@@ -7,24 +7,23 @@ public interface HashTable<T> {
 }
 
 class LockingParallelHashTable<T> implements HashTable<T> {
-    private LockingParallelBucketList<T,Integer>[] table;
+    private SerialList<T,Integer>[] table;
     private int logSize;
     private int mask;
     private final int maxBucketSize;
-    private SimpleReadWriteLock[] locks;
+    private ReentrantReadWriteLock[] locks;
     private int lockMask;
 
-
+    @SuppressWarnings("unchecked")
     public LockingParallelHashTable(int logSize, int maxBucketSize, int numThreads) {
-        this.logSize = logSize;
+    	this.logSize = logSize;
         this.maxBucketSize = maxBucketSize;
         this.mask = (1 << logSize) - 1;
-        this.numThreads = numThreads;
-        this.table = new LockingParallelBucketList[1 << logSize];
+        this.table = new SerialList[1 << logSize];
 
-        double numInExponent = Math.ceil(Math.log(numThreads) / Math.log(2));
+        int numInExponent = (int) Math.ceil(Math.log(numThreads) / Math.log(2));
         int locksLength = (int) Math.pow(2, numInExponent);
-        this.locks = new SimpleReadWriteLock[locksLength];
+        this.locks = new ReentrantReadWriteLock[locksLength];
         this.lockMask = (1 << numInExponent) - 1;
     }
 
@@ -33,11 +32,12 @@ class LockingParallelHashTable<T> implements HashTable<T> {
             resize();
         }
     }
-    public void resize() {
+    @SuppressWarnings("unchecked")
+	public void resize() {
         int oldTableLength = table.length;
 
         try {
-            for(SimpleReadWriteLock lock : locks) {
+            for(ReentrantReadWriteLock lock : locks) {
                 lock.writeLock().lock();
             }
 
@@ -45,20 +45,22 @@ class LockingParallelHashTable<T> implements HashTable<T> {
             if (table.length != oldTableLength) {
                 return;
             }
-            LockingParallelBucketList<T,Integer>[] newTable = new LockingParallelBucketList[2*oldTableLength];    
+            SerialList<T,Integer>[] newTable = new SerialList[2*oldTableLength];    
             logSize++;
             mask = (1 << logSize) - 1;
-
-            for (LockingParallelBucketList<T, Integer> bucket : table) {
-                for (LockingParallelBucketList<T,Integer>.Iterator<T,Integer> iter : bucket) {
-                    newTable[iter.K & mask].add(iter.K, iter.getItem());
+            for (SerialList<T, Integer> bucket : table) {
+                
+            	SerialList<T, Integer>.Iterator<T, Integer> curr = bucket.getHead();
+            	
+            	while (curr != null) {
+                	newTable[curr.key & mask].add(curr.key, curr.getItem());
                 }
             }
             
             table = newTable;
         
         } finally {
-            for (SimpleReadWriteLock lock : locks) {
+            for (ReentrantReadWriteLock lock : locks) {
                 lock.writeLock().unlock();
             }
 
@@ -67,7 +69,7 @@ class LockingParallelHashTable<T> implements HashTable<T> {
     public void add(int key, T item) {
         resizeIfNecessary(key);
 
-        LockingParallelBucketList<T,Integer>[] tableBeforeLocking;  
+        SerialList<T,Integer>[] tableBeforeLocking;  
         while (true) {
             try {
                 tableBeforeLocking = table;    
@@ -82,7 +84,7 @@ class LockingParallelHashTable<T> implements HashTable<T> {
 
     }
     public boolean remove(int key) {
-        LockingParallelBucketList<T,Integer>[] tableBeforeLocking;  
+        SerialList<T,Integer>[] tableBeforeLocking;  
         while (true) {
             try {
                 tableBeforeLocking = table;    
@@ -96,7 +98,7 @@ class LockingParallelHashTable<T> implements HashTable<T> {
         }
     }
     public boolean contains(int key) {
-        LockingParallelBucketList<T,Integer>[] tableBeforeLocking;  
+        SerialList<T,Integer>[] tableBeforeLocking;  
         while (true) {
             try {
                 tableBeforeLocking = table;    
@@ -109,7 +111,13 @@ class LockingParallelHashTable<T> implements HashTable<T> {
             }
         }
     }
-    
+    public void printTable() {
+        for( int i = 0; i <= mask; i++ ) {
+          System.out.println("...." + i + "....");
+          if( table[i] != null)
+            table[i].printList();
+        }
+      }
 
 }
 

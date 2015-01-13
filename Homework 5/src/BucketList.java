@@ -1,5 +1,4 @@
 
-
 public interface BucketList<T,K> {
   public boolean contains(K key);
   public boolean remove(K key);
@@ -11,118 +10,6 @@ public interface BucketList<T,K> {
   }
 }
 
-// ====================== Parallel Blocking Bucket List =========================
-class LockingParallelBucketList<T,K> implements BucketList<T,K> {
-    size = 0;
-    LockingParallelBucketList<T,K>.Iterator<T,K> head;
-
-    public LockingParallelBucketList() {
-        this.head = null;
-        this.size = 0;
-    }
-
-    public Iterator<T,K> getHead() {
-        return head;
-    }
-    
-    public Iterator<T,K> getItem(K key) {
-        LockingParallelBucketList<T,K>.Iterator<T,K> iterator = head;
-
-        while (iterator != null) {
-            if (iterator.key.equals(key)) {
-                return iterator;
-            } else {
-                iterator = iterator.next;
-            }            
-        }
-        return null;
-
-    }
-    public boolean contains(K key) {
-        LockingParallelBucketList<T,K>.Iterator<T,K> iterator;
-        
-        iterator = getItem(key);
-        
-        if (iterator == null) {
-            return false;
-        } else {
-            return true;
-        }
-    }
-    public boolean remove(K key) {
-        
-        LockingParallelBucketList<T,K>.Iterator<T,K> iterator = head;
-        if (iterator == null) {
-          return false;
-        }
-
-        if (contains(key) == false) {
-            return false;      
-        }
-        if (head.key.equals(key)) {
-            head = head.getNext();
-            size--;
-            return true;
-        }
-        while (iterator.hasNext()) {
-            if (iterator.getNext().key.equals(key)) {
-                iterator.setNext(iterator.getNext().getNext());
-                size--;
-                return true;
-            } else { 
-                iterator = iterator.getNext();
-            }
-        }
-        return false;
-
-    }
-    public void add(K key, T item) {
-        LockingParallelBucketList<T,K>.Iterator<T,K> iterator = head;
-
-        iterator = getItem(key);
-        if (iterator != null) { // Item's already there
-            return;
-        } else {
-            LockingParallelBucketList<T,K>.Iterator<T,K> firstItem = new Iterator<T,K>(key, item, head);
-            head = firstItem;
-            size++;
-        }   
-    }
-  
-    public int getSize() {
-        return size;
-    }
-
-    public class Iterator<T,K> {
-    @SuppressWarnings("unchecked")
-    public final K key;
-    private T item;
-    private Iterator<T,K> next;
-    public Iterator(K key, T item, Iterator<T,K> next) {
-      this.key = key;
-      this.item = item;
-      this.next = next;
-    }
-    @SuppressWarnings("unchecked")
-    public Iterator() {
-      this.key = (K) new Object();
-      this.item = (T) new Object();
-      this.next = null;
-    }
-    public boolean hasNext() {
-      return next != null;
-    }
-    @SuppressWarnings("unchecked")
-    public Iterator getNext() {
-      return next;
-    }
-    public void setNext(Iterator<T,K> next) {this.next = next; }
-    public T getItem() { return item; }
-    public void setItem(T item) { this.item = item; }
-  }
-
-
-}
 // ====================== Serial Bucket List =========================
 class SerialList<T,K> implements BucketList<T,K> {
   int size = 0;
@@ -208,7 +95,7 @@ class SerialList<T,K> implements BucketList<T,K> {
       iterator = iterator.getNext();
     }
   }
-  public class Iterator<T,K> {
+  public class Iterator<T,K>{
     @SuppressWarnings("unchecked")
     public final K key;
     private T item;
@@ -227,14 +114,14 @@ class SerialList<T,K> implements BucketList<T,K> {
     public boolean hasNext() {
       return next != null;
     }
-    @SuppressWarnings("unchecked")
-    public Iterator getNext() {
+    public Iterator<T,K> getNext() {
       return next;
     }
     public void setNext(Iterator<T,K> next) {this.next = next; }
     public T getItem() { return item; }
     public void setItem(T item) { this.item = item; }
   }
+
 }
 
 class BucketListTest {
