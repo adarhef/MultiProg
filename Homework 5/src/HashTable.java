@@ -22,7 +22,7 @@ class LockingParallelHashTable<T> implements HashTable<T> {
         this.numThreads = numThreads;
         this.table = new LockingParallelBucketList[1 << logSize];
 
-        double numInExponent = Math.floor(Math.log(numThreads) / Math.log(2));
+        double numInExponent = Math.ceil(Math.log(numThreads) / Math.log(2));
         int locksLength = (int) Math.pow(2, numInExponent);
         this.locks = new SimpleReadWriteLock[locksLength];
         this.lockMask = (1 << numInExponent) - 1;
@@ -44,7 +44,7 @@ class LockingParallelHashTable<T> implements HashTable<T> {
             // Check that no one finished resizing at this point
             if (table.length != oldTableLength) {
                 return;
-            }                
+            }
             LockingParallelBucketList<T,Integer>[] newTable = new LockingParallelBucketList[2*oldTableLength];    
             logSize++;
             mask = (1 << logSize) - 1;
