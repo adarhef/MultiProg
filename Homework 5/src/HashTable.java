@@ -12,6 +12,7 @@ class LockingParallelHashTable<T> implements HashTable<T> {
     private int mask;
     private final int maxBucketSize;
     private SimpleReadWriteLock[] locks;
+    private int lockMask;
 
 
     public LockingParallelHashTable(int logSize, int maxBucketSize, int numThreads) {
@@ -22,17 +23,18 @@ class LockingParallelHashTable<T> implements HashTable<T> {
         this.table = new LockingParallelBucketList[1 << logSize];
 
         double numInExponent = Math.floor(Math.log(numThreads) / Math.log(2));
-        this.locks = new SimpleReadWriteLock[(int) Math.pow(2, numInExponent)];
+        int locksLength = (int) Math.pow(2, numInExponent);
+        this.locks = new SimpleReadWriteLock[locksLength];
+        this.lockMask = (1 << numInExponent) - 1;
     }
 
-    public resizeIfNecessary(int key) {
+    public void resizeIfNecessary(int key) {
         while (table[key & mask] != null && table[key & mask].getSize() >= maxBucketSize) {
             resize();
         }
     }
-    public resize() {
+    public void resize() {
         int oldTableLength = table.length;
-        
 
         try {
             for(SimpleReadWriteLock lock : locks) {
@@ -43,19 +45,68 @@ class LockingParallelHashTable<T> implements HashTable<T> {
             if (table.length != oldTableLength) {
                 return;
             }                
-            LockingParallelBucketList<T,Integer>[] newTable = new LockingParallelBucketList[2*table.length];    
-            LockingParallelBucketList<T,Integer>.Iterator<T,Integer> iterator = table[i].getHead();
-            // Have to rewrite this... I'm stupid. :(
-
-            table = newTable;
+            LockingParallelBucketList<T,Integer>[] newTable = new LockingParallelBucketList[2*oldTableLength];    
             logSize++;
             mask = (1 << logSize) - 1;
+
+            for (LockingParallelBucketList<T, Integer> bucket : table) {
+                for (LockingParallelBucketList<T,Integer>.Iterator<T,Integer> iter : bucket) {
+                    newTable[iter.K & mask].add(iter.K, iter.getItem());
+                }
+            }
+            
+            table = newTable;
         
         } finally {
-            for(SimpleReadWriteLock lock : locks) {
+            for (SimpleReadWriteLock lock : locks) {
                 lock.writeLock().unlock();
-            }                
+            }
 
+        }
+    }
+    public void add(int key, T item) {
+        resizeIfNecessary(key);
+
+        LockingParallelBucketList<T,Integer>[] tableBeforeLocking;  
+        while (true) {
+            try {
+                tableBeforeLocking = table;    
+                locks[key & lockMask].writeLock().lock();
+                if (table.length == tableBeforeLocking.length) {
+                    table[key & mask].add(key, item);
+                }
+            } finally {
+                locks[key & lockMask].writeLock().unlock();
+            }
+        }
+
+    }
+    public boolean remove(int key) {
+        LockingParallelBucketList<T,Integer>[] tableBeforeLocking;  
+        while (true) {
+            try {
+                tableBeforeLocking = table;    
+                locks[key & lockMask].writeLock().lock();
+                if (table.length == tableBeforeLocking.length) {
+                    return table[key & mask].remove(key);
+                }
+            } finally {
+                locks[key & lockMask].writeLock().unlock();
+            }
+        }
+    }
+    public boolean contains(int key) {
+        LockingParallelBucketList<T,Integer>[] tableBeforeLocking;  
+        while (true) {
+            try {
+                tableBeforeLocking = table;    
+                locks[key & lockMask].readLock().lock();
+                if (table.length == tableBeforeLocking.length) {
+                    return table[key & mask].contains(key);
+                }
+            } finally {
+                locks[key & lockMask].readLock().unlock();
+            }
         }
     }
     
