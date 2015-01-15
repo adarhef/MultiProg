@@ -1,3 +1,4 @@
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 public interface HashTable<T> {
@@ -5,6 +6,138 @@ public interface HashTable<T> {
   public boolean remove(int key);
   public boolean contains(int key);
 }
+
+
+class OptimisticParallelHashTable<T> implements HashTable<T> {
+    private SerialList<T,Integer>[] table;
+    private int logSize;
+    private int mask;
+    private final int maxBucketSize;
+    private ReentrantReadWriteLock[] locks;
+    private int lockMask;
+    private AtomicLong[] lockStamps;
+
+    @SuppressWarnings("unchecked")
+    public OptimisticParallelHashTable(int logSize, int maxBucketSize, int numThreads) {
+        this.logSize = logSize;
+        this.maxBucketSize = maxBucketSize;
+        this.mask = (1 << logSize) - 1;
+        this.table = new SerialList[1 << logSize];
+
+        int numInExponent = (int) Math.ceil(Math.log(numThreads) / Math.log(2));
+        int locksLength = (int) Math.pow(2, numInExponent);
+        this.locks = new ReentrantReadWriteLock[locksLength];
+        this.lockStamps = new AtomicLong[locksLength];
+        this.lockMask = (1 << numInExponent) - 1;
+    }
+    public void resizeIfNecessary(int key) {
+        while (table[key & mask] != null && table[key & mask].getSize() >= maxBucketSize) {
+            resize();
+        }
+    }
+    @SuppressWarnings("unchecked")
+    public void resize() {
+        int oldTableLength = table.length;
+
+        try {
+            for(int i = 0; i < locks.length; i++) {
+                locks[i].writeLock().lock();
+                lockStamps[i].getAndIncrement();
+            }
+
+            // Check that no one finished resizing at this point
+            if (table.length != oldTableLength) {
+                return;
+            }
+            SerialList<T,Integer>[] newTable = new SerialList[2*oldTableLength];    
+            logSize++;
+            mask = (1 << logSize) - 1;
+            for (SerialList<T, Integer> bucket : table) {
+                
+                SerialList<T, Integer>.Iterator<T, Integer> curr = bucket.getHead();
+                
+                while (curr != null) {
+                    newTable[curr.key & mask].add(curr.key, curr.getItem());
+                }
+            }
+            
+            table = newTable;
+        
+        } finally {
+            for (ReentrantReadWriteLock lock : locks) {
+                lock.writeLock().unlock();
+            }
+
+        }
+    }
+    public void add(int key, T item) {
+        resizeIfNecessary(key);
+
+        SerialList<T,Integer>[] tableBeforeLocking;  
+        while (true) {
+            try {
+                tableBeforeLocking = table;    
+                locks[key & lockMask].writeLock().lock();
+                lockStamps[key & lockMask].getAndIncrement();
+
+                if (table.length == tableBeforeLocking.length) {
+                    table[key & mask].add(key, item);
+                }
+            } finally {
+                locks[key & lockMask].writeLock().unlock();
+            }
+        }
+
+    }
+    public boolean remove(int key) {
+        SerialList<T,Integer>[] tableBeforeLocking;  
+        while (true) {
+            try {
+                tableBeforeLocking = table;    
+                locks[key & lockMask].writeLock().lock();
+                lockStamps[key & lockMask].getAndIncrement();
+                if (table.length == tableBeforeLocking.length) {
+                    return table[key & mask].remove(key);
+                }
+            } finally {
+                locks[key & lockMask].writeLock().unlock();
+            }
+        }
+    }
+    public boolean contains(int key) {
+        SerialList<T,Integer>[] tableBeforeLocking;  
+        
+        tableBeforeLocking = table;
+        long oldStamp = lockStamps[key & lockMask].get();
+        boolean containsRetValue = table[key & mask].contains(key);
+
+        if (!validate(key, oldStamp, tableBeforeLocking)) {
+            // Try acquiring readLock.
+            while (true) {
+                try {
+                    tableBeforeLocking = table;    
+                    locks[key & lockMask].readLock().lock();
+                    if (table.length == tableBeforeLocking.length) {
+                        return table[key & mask].contains(key);
+                    }
+                } finally {
+                    locks[key & lockMask].readLock().unlock();
+                }
+            }
+        } else {
+            // Everything was fine.
+            return containsRetValue;
+        }
+    }
+    
+    public boolean validate(int key, long oldStamp, SerialList<T, Integer>[] oldTable) {
+        if (lockStamps[key & lockMask].get() == oldStamp && table.length == oldTable.length) 
+            return true;
+        else 
+            return false;
+    }
+}
+
 
 class LockingParallelHashTable<T> implements HashTable<T> {
     private SerialList<T,Integer>[] table;
